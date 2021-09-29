@@ -6,50 +6,74 @@ var app = {
     },
 
     onDeviceReady: function() {
-        document.getElementById("btnListar").addEventListener("click",app.listar);
-        this.receivedEvent('deviceready');
+        document.getElementById("btnBuscar").addEventListener("click",app.buscar);
+        document.getElementById("btnEditar").addEventListener("click",app.editar);
     },
 
-    // Update DOM on a Received Event
-    receivedEvent: function(id) {
-        db = window.sqlitePlugin.openDatabase({
-            name: 'aplicativo.db',
-            location: 'default',            
-            androidDatabaseProvider: 'system'
-        });
+    buscar: function(){
+        var url_string = window.location.href;
+        var url = new URL(url_string);
+        var getTelefone = url.searchParams.get("telefone");
 
-        db.transaction(function(tx) {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS clientes (nome, telefone, origem, data_contato, observacao)');
-        }, function(error) {
-            console.log('Transaction ERROR: ' + error.message);
-        }, function() {
-            //alert('Banco e Tabela clientes criados com sucesso!!!');
+        var db = firebase.firestore();
+        var ag = db.collection("agendamentos").where("telefone", "==", getTelefone);
+
+        ag.get()
+        .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                console.log(doc.id, " => ", doc.data());
+                document.getElementById("txtNome").value = doc.data().nome;
+                document.getElementById("txtTelefone").value = doc.data().telefone;
+                document.getElementById("txtOrigem").value = doc.data().origem;
+                document.getElementById("txtDataContato").value = doc.data().data_contato;
+                document.getElementById("txtObservacao").value = doc.data().observacao;
+            });
+        })
+        .catch((error) => {
+            console.log("Error getting documents: ", error);
         });
     },
-    
-    listar: function(){
-        db.executeSql(
-            'SELECT nome AS uNome, telefone AS uTelefone, origem AS uOrigem, data_contato AS uDataContato, observacao AS uObservacao FROM clientes', [], function(rs) {
-                //alert(JSON.stringify(rs));
-                //alert(rs.rows.length);
-                let i = 0;
-                for(i = 0; i < rs.rows.length; i++){
-                    //alert("item "+i);
-                    let recordItem = rs.rows.item(i);
-                    //alert(JSON.stringify(recordItem));
-                    $("#TableData").append("<tr>");
-                    $("#TableData").append("<td scope='col'>" + rs.rows.item(i).uNome + "</td>");
-                    $("#TableData").append("<td scope='col'>" + rs.rows.item(i).uTelefone + "</td>");
-                    $("#TableData").append("<td scope='col'>" + rs.rows.item(i).uOrigem + "</td>");
-                    $("#TableData").append("<td scope='col'>" + rs.rows.item(i).uDataContato + "</td>");
-                    $("#TableData").append("<td scope='col'>" + rs.rows.item(i).uObservacao + "</td>");
-                    $("#TableData").append("<td scope='col'><a href='" + cordova.file.applicationDirectory + "www/editarClientes.html?telefone=" + rs.rows.item(i).uTelefone + "'>Editar</a></td>");
-                    $("#TableData").append("</tr>");
-                }
-            //alert('Record count (expected to be 2): ' + rs.rows.item(0).uLoginName);
-        }, function(error) {
-            alert('Erro no SELECT: ' + error.message);
-        }); 
+
+    editar: function(){
+        var url_string = window.location.href;
+        var url = new URL(url_string);
+        var getTelefone = url.searchParams.get("telefone");
+
+        let cnome = document.getElementById("txtNome").value;
+        let ctelefone = document.getElementById("txtTelefone").value;
+        let corigem = document.getElementById("txtOrigem").value;
+        let cdata_contato = document.getElementById("txtDataContato").value;
+        let cobservacao = document.getElementById("txtObservacao").value;
+
+        var db = firebase.firestore();
+        var ag = db.collection("agendamentos").where("telefone", "==", getTelefone);
+
+        ag.get()
+        .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                var dados = db.collection("agendamentos").doc(doc.id);
+
+                return dados.update({
+                    nome: cnome,
+                    telefone: ctelefone,
+                    origem: corigem,
+                    data_contato: cdata_contato,
+                    observacao: cobservacao
+                })
+                .then(() => {
+                    console.log("Document successfully updated!");
+                    window.location.href = cordova.file.applicationDirectory + "www/consultarClientes.html";
+                })
+                .catch((error) => {
+                    // The document probably doesn't exist.
+                    console.error("Error updating document: ", error);
+                });
+            });
+        })
+        .catch((error) => {
+            console.log("Error getting documents: ", error);
+        });
+
     }
 
 };
