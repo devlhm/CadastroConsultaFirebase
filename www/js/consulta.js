@@ -23,14 +23,48 @@ var app = {
                 $("#TableData").append("<td scope='col'>" + doc.data().origem + "</td>");
                 $("#TableData").append("<td scope='col'>" + doc.data().data_contato + "</td>");
                 $("#TableData").append("<td scope='col'>" + doc.data().observacao + "</td>");
-                $("#TableData").append("<td scope='col'><a href='" + cordova.file.applicationDirectory + "editar.html?telefone=" + doc.data().telefone + "'>Editar</a>&nbsp;|&nbsp;<a href='" + cordova.file.applicationDirectory + "www/excluirClientes.html?telefone=" + doc.data().telefone + "'>Excluir</a></td>");
+                $("#TableData").append("<td scope='col'><a href='" + cordova.file.applicationDirectory + "editar.html?telefone=" + doc.data().telefone + "'>Editar</a>&nbsp;|&nbsp;<a href='" + cordova.file.applicationDirectory + "www/excluir.html?telefone=" + doc.data().telefone + "'>Excluir</a></td>");
                 $("#TableData").append("</tr>");
-                //a
             });
         })
         .catch(err => {
             console.error(err);
         });
+    },
+
+    deletar: function(telefone){
+        var db = firebase.firestore();
+        var ag = db.collection("agendamentos").where("telefone", "==", telefone);
+
+        if (confirm('Deseja realmente excluir esse registro?')) {
+            onConfirm(1);
+        }
+
+        // navigator.notification.confirm(
+        //     'Deseja realmente excluir esse registro?',
+        //     onConfirm,
+        //     'Excluir',
+        //     ['Sim','Não']
+        // );
+
+        function onConfirm(buttonIndex) {
+            if(buttonIndex == 1){
+                ag.get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        db.collection("agendamentos").doc(doc.id).delete().then(() => {
+                            console.log("Registro deletado!");
+                            window.location.href = cordova.file.applicationDirectory + "www/consultarClientes.html";
+                        }).catch((error) => {
+                            console.error("Erro deletando registro: ", error);
+                        });
+                    });
+                })
+                .catch((error) => {
+                    console.log("Erro acessando registros: ", error);
+                });
+            }
+        }
     }
 
 };
